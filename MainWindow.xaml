@@ -13,7 +13,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <FontIcon Glyph="&#xE88E;" FontSize="26" Foreground="#FFFFC700" />
+                    <Image Source="ms-appx:///Hyper-V%20VHDX%20Toggle%20Manager/Icon.png" Width="36" Height="36" Stretch="Uniform" />
                     <StackPanel Grid.Column="1">
                         <TextBlock Text="vUSB Lab" Style="{ThemeResource SubtitleTextBlockStyle}" />
                         <TextBlock Text="One disk. Your VM or your PC." Opacity="0.65" FontSize="12" />

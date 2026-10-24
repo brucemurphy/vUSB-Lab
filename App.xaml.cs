@@ -1,11 +1,10 @@
-﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
-using Microsoft.UI.Xaml.Shapes;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -35,6 +34,7 @@ namespace vUSB_LAB
         /// </summary>
         public App()
         {
+            UnhandledException += (_, args) => LogFailure(args.Exception);
             InitializeComponent();
         }
 
@@ -53,7 +53,26 @@ namespace vUSB_LAB
                 return;
             }
             System.Windows.Forms.Application.EnableVisualStyles();
-            _window = new MainWindow();
+            try
+            {
+                _window = new MainWindow();
+            }
+            catch (Exception error)
+            {
+                string log = LogFailure(error);
+                System.Windows.Forms.MessageBox.Show(
+                    $"vUSB Lab could not start:\n\n{error.Message}\n\nDetails: {log}", "vUSB Lab startup error");
+                Exit();
+            }
+        }
+
+        private static string LogFailure(Exception error)
+        {
+            string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "vUSB Lab", "Logs");
+            Directory.CreateDirectory(directory);
+            string path = Path.Combine(directory, "startup.log");
+            File.AppendAllText(path, $"{DateTimeOffset.Now:O}\n{error}\nMessage: {error.Message}\n");
+            return path;
         }
     }
 }

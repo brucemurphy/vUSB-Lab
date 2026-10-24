@@ -24,6 +24,7 @@ OutputBaseFilename=vUSB-Lab-v{#AppVersion}-win-{#Architecture}-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\Assets\AppIcon.ico
 CloseApplications=no
 RestartApplications=no
 UninstallDisplayIcon={app}\vUSB LAB.exe

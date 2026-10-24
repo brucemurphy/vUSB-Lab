@@ -34,6 +34,9 @@ foreach ($architecture in 'x64', 'arm64') {
         '-p:PublishSingleFile=false' '-p:PublishTrimmed=false' '-p:PublishReadyToRun=false'
     if ($LASTEXITCODE -ne 0) { throw "Publish failed for $architecture." }
     if (-not (Test-Path -LiteralPath (Join-Path $folder 'vUSB LAB.exe'))) { throw 'Published executable is missing.' }
+    foreach ($resource in 'vUSB LAB.pri', 'App.xbf', 'MainWindow.xbf', 'Assets\AppIcon.ico') {
+        if (-not (Test-Path -LiteralPath (Join-Path $folder $resource))) { throw "Published resource is missing: $resource" }
+    }
     if (-not (Test-Path -LiteralPath (Join-Path $folder 'Hyper-V VHDX Toggle Manager\vhdx-toggle-flash-drive.png'))) {
         throw 'Published USB artwork is missing.'
     }
