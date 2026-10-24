@@ -1,0 +1,12 @@
+.vs/
+bin/
+obj/
+artifacts/
+*.user
+*.suo
+*.pfx
+*.p12
+*.vhd
+*.vhdx
+*.avhdx
+settings.json
