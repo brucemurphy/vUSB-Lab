@@ -33,7 +33,7 @@ internal static class VhdxService
         File.Move(temporary, SettingsFile, true);
     }
 
-    public static async Task<JsonElement> RunAsync(string action, ToggleSettings settings)
+    public static async Task<JsonElement> RunAsync(string action, ToggleSettings settings, long? sizeBytes = null)
     {
         var start = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
             @"WindowsPowerShell\v1.0\powershell.exe"))
@@ -55,6 +55,7 @@ internal static class VhdxService
         start.Environment["VUSB_VM"] = settings.Vm;
         start.Environment["VUSB_VHDX"] = settings.Vhdx;
         start.Environment["VUSB_LETTER"] = settings.Letter;
+        start.Environment["VUSB_SIZE"] = sizeBytes?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "";
         using var process = Process.Start(start) ?? throw new InvalidOperationException("Could not start PowerShell.");
         Task<string> output = process.StandardOutput.ReadToEndAsync();
         Task<string> error = process.StandardError.ReadToEndAsync();
@@ -112,10 +113,55 @@ internal static class VhdxService
             if (-not $part) { throw 'No usable partition found. Initialize and format the VHDX first.' }
             $null = Set-Partition -DiskNumber $disk.Number -PartitionNumber $part.PartitionNumber -NewDriveLetter $Letter
         }
+        function New-UsbDisk {
+            if (-not [IO.Path]::IsPathRooted($Vhdx) -or [IO.Path]::GetExtension($Vhdx) -ine '.vhdx') {
+                throw 'Choose an absolute path ending in .vhdx.'
+            }
+            if (Test-Path -LiteralPath $Vhdx) { throw 'The destination already exists. Existing files are never overwritten.' }
+            if (-not (Test-Path -LiteralPath ([IO.Path]::GetDirectoryName($Vhdx)) -PathType Container)) {
+                throw 'The destination folder does not exist.'
+            }
+            [long]$bytes = 0
+            if (-not [long]::TryParse($env:VUSB_SIZE, [ref]$bytes) -or $bytes -lt 1GB -or $bytes -gt 64TB -or $bytes % 1GB -ne 0) {
+                throw 'Enter a whole-number size from 1 to 65536 GiB.'
+            }
+            $created = $false
+            $mounted = $false
+            $failure = $null
+            try {
+                $null = New-VHD -Path $Vhdx -SizeBytes $bytes -Dynamic
+                $created = $true
+                $image = Mount-VHD -Path $Vhdx -NoDriveLetter -Passthru
+                $mounted = $true
+                $disk = $image | Get-Disk
+                if ($disk.IsBoot -or $disk.IsSystem -or $disk.Number -ne $image.DiskNumber) {
+                    throw 'The mounted disk could not be safely identified. Formatting was refused.'
+                }
+                if ($disk.PartitionStyle -ne 'RAW') { throw 'The newly created disk is not blank. Formatting was refused.' }
+                $disk = Initialize-Disk -Number $disk.Number -PartitionStyle GPT -PassThru
+                $partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize
+                $null = Format-Volume -Partition $partition -FileSystem NTFS -NewFileSystemLabel 'vUSB Lab' -Confirm:$false -Force
+            } catch {
+                $failure = $_.Exception.Message
+            } finally {
+                if ($mounted) {
+                    try { Dismount-VHD -Path $Vhdx } catch {
+                        $failure = "$failure Could not detach the new disk: $($_.Exception.Message). Detach it manually before using it."
+                    }
+                }
+            }
+            if ($failure) {
+                if ($created) { throw "$failure The new file was retained at '$Vhdx'; it may be incomplete. Existing disks were not modified." }
+                throw $failure
+            }
+            return [pscustomobject]@{ State = 'None'; Path = $Vhdx }
+        }
         try {
             Import-Module Hyper-V
             if ($Letter -notmatch '^[A-Z]$') { throw 'Choose a drive letter between A and Z.' }
-            if ($Action -eq 'List') {
+            if ($Action -eq 'Create') {
+                $result = New-UsbDisk
+            } elseif ($Action -eq 'List') {
                 $result = [pscustomobject]@{ Vms = @(Get-VM | Sort-Object Name | Select-Object -ExpandProperty Name) }
             } else {
                 $state = Get-ImageState

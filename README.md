@@ -10,12 +10,15 @@
 
 Click the notification-area icon and the USB glides into view: no title bar, no rectangular background, and no taskbar button. Click the drive to move your VHDX between a Hyper-V VM and the host.
 
-The small gear opens an acrylic Fluent settings flyout:
+The small gear opens a charcoal Fluent settings flyout with yellow accents, matching the Lab family:
 
 - Choose a local Hyper-V virtual machine.
 - Browse for an existing `.vhdx` or `.vhd`.
 - Pick a host drive letter, with **Z:** selected by default.
 - Save settings once; they persist between launches.
+- Expand **Create a VHDX**, choose a new file location and maximum size in GiB, then click **Create VHDX**. The app creates a dynamically expanding disk, initializes GPT, formats NTFS and detaches it safely. The new disk is selected for you; save settings to use it.
+
+Creation accepts whole-number sizes from 1 to 65536 GiB. It never overwrites an existing file, and only formats the disk it just created. If initialization fails, the new file is retained with an explicit error so you can inspect or remove it. Dynamic disks grow with use; ensure the destination has enough space for the data you intend to store.
 
 The drive's LED is blue for VM attachment, green for host attachment, and gold while working. Click elsewhere or press **Esc** to dismiss. Press **S** on the USB to open settings; **Enter** or **Space** toggles the disk. Right-click the tray icon for settings or exit.
 

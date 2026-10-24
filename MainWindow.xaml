@@ -4,30 +4,35 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="vUSB settings">
-    <Window.SystemBackdrop>
-        <DesktopAcrylicBackdrop />
-    </Window.SystemBackdrop>
-    <Border CornerRadius="12" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" KeyDown="Settings_KeyDown">
+    <Border RequestedTheme="Dark" Background="#FF0C1016" CornerRadius="12" BorderThickness="1" BorderBrush="{StaticResource LabStrokeBrush}" KeyDown="Settings_KeyDown">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Padding="24" Spacing="16">
+            <StackPanel Padding="20" Spacing="12">
                 <Grid ColumnSpacing="12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <FontIcon Glyph="&#xE88E;" FontSize="26" />
+                    <FontIcon Glyph="&#xE88E;" FontSize="26" Foreground="#FFFFC700" />
                     <StackPanel Grid.Column="1">
-                        <TextBlock Text="Virtual USB" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                        <TextBlock Text="vUSB Lab" Style="{ThemeResource SubtitleTextBlockStyle}" />
                         <TextBlock Text="One disk. Your VM or your PC." Opacity="0.65" FontSize="12" />
                     </StackPanel>
                     <Button Grid.Column="2" Click="Dismiss_Click" AutomationProperties.Name="Close settings" ToolTipService.ToolTip="Close settings">
                         <FontIcon Glyph="&#xE8BB;" FontSize="12" />
                     </Button>
                 </Grid>
-                <InfoBar x:Name="StatusBar" IsOpen="True" IsClosable="False" Severity="Informational" Message="Choose your virtual machine and disk." />
+                <Border Style="{StaticResource LabCardStyle}">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="STATUS" Style="{StaticResource LabSectionStyle}" />
+                    <InfoBar x:Name="StatusBar" IsOpen="True" IsClosable="False" Severity="Informational" Message="Choose your virtual machine and disk." />
+                  </StackPanel>
+                </Border>
                 <ContentControl x:Name="SettingsFields" HorizontalContentAlignment="Stretch">
                   <StackPanel Spacing="16">
+                   <Border Style="{StaticResource LabCardStyle}">
+                    <StackPanel Spacing="12">
+                    <TextBlock Text="VIRTUAL USB SETTINGS" Style="{StaticResource LabSectionStyle}" />
                     <Grid ColumnSpacing="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -49,13 +54,41 @@
                     <ComboBox x:Name="LetterChoice" Header="Drive letter on this PC" HorizontalAlignment="Stretch" />
                     <TextBlock Text="Save your settings, then click the USB to move the disk. Eject it safely in the guest or close host files first. The destination letter must be free." TextWrapping="Wrap" FontSize="12" Opacity="0.65" />
                     <Button Content="Save settings" HorizontalAlignment="Stretch" Style="{ThemeResource AccentButtonStyle}" Click="Save_Click" />
+                    </StackPanel>
+                   </Border>
+                   <Border Style="{StaticResource LabCardStyle}">
+                    <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                      <Expander.Header>
+                        <TextBlock Text="CREATE A VHDX" Style="{StaticResource LabSectionStyle}" />
+                      </Expander.Header>
+                      <StackPanel Spacing="12">
+                        <TextBlock Text="A new virtual USB, ready to use." FontWeight="SemiBold" />
+                        <Grid ColumnSpacing="8">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                          </Grid.ColumnDefinitions>
+                          <TextBox x:Name="NewDiskPath" Header="New VHDX location" IsReadOnly="True" PlaceholderText="Choose a new file" />
+                          <Button Grid.Column="1" VerticalAlignment="Bottom" Content="Browse" Click="NewLocation_Click" />
+                        </Grid>
+                        <NumberBox x:Name="NewDiskSize" Header="Maximum size (GiB)" Minimum="1" Maximum="65536" Value="32" SmallChange="1" LargeChange="10" SpinButtonPlacementMode="Compact" />
+                        <TextBlock Text="Dynamically expanding, GPT, NTFS. Starts small and grows as you add files. Existing files are never overwritten. Created detached; save settings to use it." TextWrapping="Wrap" FontSize="12" Foreground="#FF97A6B7" />
+                        <Button Content="Create VHDX" HorizontalAlignment="Stretch" Style="{ThemeResource AccentButtonStyle}" Click="CreateDisk_Click" />
+                      </StackPanel>
+                    </Expander>
+                   </Border>
                   </StackPanel>
                 </ContentControl>
                 <ProgressBar x:Name="BusyProgress" IsIndeterminate="True" Visibility="Collapsed" />
+                <Border Style="{StaticResource LabCardStyle}">
+                 <StackPanel Spacing="10">
+                <TextBlock Text="APP &amp; UPDATES" Style="{StaticResource LabSectionStyle}" />
                 <TextBlock x:Name="VersionLabel" FontSize="12" Opacity="0.65" />
                 <InfoBar x:Name="UpdateStatus" IsOpen="False" IsClosable="False" />
                 <Button x:Name="UpdateButton" Content="Check for updates" HorizontalAlignment="Stretch" Click="Update_Click" />
                 <Button x:Name="ExitButton" Content="Exit vUSB" HorizontalAlignment="Right" Click="Exit_Click" />
+                 </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
     </Border>

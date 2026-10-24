@@ -61,10 +61,10 @@ public sealed partial class MainWindow : Window
         var anchor = _tray.Anchor;
         var work = Forms.Screen.FromPoint(anchor).WorkingArea;
         IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-        AppWindow.Move(new PointInt32(work.Right - 440, work.Bottom - 600));
+        AppWindow.Move(new PointInt32(work.Right - 500, work.Bottom - 760));
         double scale = GetDpiForWindow(hwnd) / 96d;
-        int width = Math.Min((int)(440 * scale), work.Width - 16);
-        int height = Math.Min((int)(610 * scale), work.Height - 16);
+        int width = Math.Min((int)(500 * scale), work.Width - 16);
+        int height = Math.Min((int)(760 * scale), work.Height - 16);
         int x = Math.Clamp(anchor.X - width / 2, work.Left + 8, Math.Max(work.Left + 8, work.Right - width - 8));
         int y = anchor.Y <= work.Top ? work.Top + 8 : work.Bottom - height - 8;
         AppWindow.MoveAndResize(new RectInt32(x, y, width, height));
@@ -102,12 +102,12 @@ public sealed partial class MainWindow : Window
         _tray.UpdateState(state, message, false);
     }
 
-    private void ReportError(Exception error)
+    private void ReportError(Exception error, bool preserveDiskState = false)
     {
-        _diskState = "Unknown";
+        if (!preserveDiskState) _diskState = "Unknown";
         StatusBar.Severity = InfoBarSeverity.Error;
         StatusBar.Message = error.Message;
-        _tray.UpdateState("Unknown", error.Message, false);
+        _tray.UpdateState(_diskState, error.Message, false);
         _tray.Notify(error.Message, true);
     }
 
@@ -198,6 +198,60 @@ public sealed partial class MainWindow : Window
     }
 
     private async void Refresh_Click(object sender, RoutedEventArgs e) => await RefreshAsync();
+    private void NewLocation_Click(object sender, RoutedEventArgs e)
+    {
+        _pickingFile = true;
+        try
+        {
+            using var dialog = new Forms.SaveFileDialog
+            {
+                Filter = "Virtual hard disk (*.vhdx)|*.vhdx",
+                DefaultExt = "vhdx",
+                AddExtension = true,
+                OverwritePrompt = false,
+                FileName = "Virtual USB.vhdx",
+                Title = "Choose a location for a new VHDX"
+            };
+            if (dialog.ShowDialog(new DialogOwner(WinRT.Interop.WindowNative.GetWindowHandle(this))) == Forms.DialogResult.OK)
+            {
+                if (File.Exists(dialog.FileName) || Directory.Exists(dialog.FileName))
+                    throw new InvalidOperationException("That location already exists. Choose a new filename; existing disks are never overwritten.");
+                NewDiskPath.Text = dialog.FileName;
+            }
+        }
+        catch (Exception error) { ReportError(error, true); }
+        finally { _pickingFile = false; Activate(); }
+    }
+
+    private async void CreateDisk_Click(object sender, RoutedEventArgs e)
+    {
+        if (_busy) return;
+        SetBusy(true);
+        try
+        {
+            string path = NewDiskPath.Text;
+            double size = NewDiskSize.Value;
+            if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path) ||
+                !Path.GetExtension(path).Equals(".vhdx", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Choose a location and .vhdx filename for the new disk.");
+            if (File.Exists(path) || Directory.Exists(path))
+                throw new InvalidOperationException("That location already exists. Choose a new filename; existing disks are never overwritten.");
+            if (!Directory.Exists(Path.GetDirectoryName(path)))
+                throw new InvalidOperationException("The destination folder does not exist.");
+            if (!double.IsFinite(size) || size < 1 || size > 65536 || size != Math.Truncate(size))
+                throw new InvalidOperationException("Enter a whole-number size from 1 to 65536 GiB.");
+            StatusBar.Message = "Creating and formatting the new virtual USB...";
+            await VhdxService.RunAsync("Create", new ToggleSettings(Vhdx: path), checked((long)size * 1024 * 1024 * 1024));
+            DiskPath.Text = path;
+            StatusBar.Severity = InfoBarSeverity.Success;
+            StatusBar.Message = "VHDX created with GPT and NTFS, then safely detached. Save settings to use it.";
+            _tray.UpdateState(_diskState, StatusBar.Message, false);
+            _tray.Notify("Your new VHDX is ready. Save settings to use it.");
+        }
+        catch (Exception error) { ReportError(error, true); }
+        finally { SetBusy(false); }
+    }
+
     private async void Update_Click(object sender, RoutedEventArgs e)
     {
         if (_busy) return;
